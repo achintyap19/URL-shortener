@@ -6,7 +6,8 @@ const urlSchema = new mongoose.Schema({
     originalURL:{
         type: String,
         required: [true, 'original url is required'],
-        trim: true
+        trim: true,
+        index: true
     },
     shortCode:{
         type: String,
