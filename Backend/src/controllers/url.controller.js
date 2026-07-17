@@ -1,5 +1,6 @@
 const urlModel = require('../models/url.model')
 const {nanoid} = require('nanoid')
+const redisClient = require('../db/redis')
 
 async function shortenURL(req,res){
 
@@ -50,6 +51,9 @@ async function redirectToOriginalURL(req,res){
 
     
         const {shortCode} = req.params
+
+        //find the short code in redis
+        const cachedUrl = await redisClient.get({shortCode})
 
         //find short code in database
         const url = await urlModel.findOne({shortCode})
