@@ -27,6 +27,21 @@ router.get('/analytics/:shortCode', asyncHandler(UrlController.getAnalytics))
  */
 router.get('/:shortCode', asyncHandler(UrlController.redirectToOriginalURL))
 
+/**
+ * @route PATCH /api/url/:shortCode
+ * @description Updates the original URL associated with a short code and invalidates the cached URL.
+ * @access Public
+ */
+router.patch('/:shortCode',urlValidator.validateOriginalURL, asyncHandler(UrlController.updateURL))
+
+/**
+ * @route DELETE /api/url/:shortCode
+ * @description Deletes the short URL from the database and removes it from the Redis cache.
+ * @access Public
+ */
+router.delete('/:shortCode',
+    asyncHandler(UrlController.deleteURL)
+);
 
 
 

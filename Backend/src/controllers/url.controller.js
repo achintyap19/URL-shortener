@@ -53,9 +53,25 @@ async function redirectToOriginalURL(req,res){
         const {shortCode} = req.params
 
         //find the short code in redis
-        const cachedUrl = await redisClient.get({shortCode})
+        const cachedUrl = await redisClient.get(shortCode)
 
-        //find short code in database
+        if(cachedUrl){
+            console.log('✅ Cache Hit')
+
+            //increment clicks in mongo db and redirect
+            await urlModel.updateOne(
+                { shortCode },
+                { $inc: { clicks: 1 } }
+        );
+            //Redirect
+            return res.redirect(cachedUrl);
+        }
+
+        
+
+        console.log('❌ Cache Miss')
+
+        //if not in redis, query mongoDB
         const url = await urlModel.findOne({shortCode})
 
         if(!url){
@@ -63,9 +79,17 @@ async function redirectToOriginalURL(req,res){
                 message:'short url not found'
             })
         }
+
+        //store in redis for future requests
+        await redisClient.set(shortCode, url.originalURL, {
+            EX: 3600 //1 hour expiration time of the short code in redis
+        });
+
         //increment click count
-        url.clicks += 1
-        await url.save()
+        await urlModel.updateOne(
+        { shortCode },
+        { $inc: { clicks: 1 } }
+        );
 
         return res.redirect(url.originalURL)
 }
@@ -97,5 +121,57 @@ async function getAnalytics(req,res){
         })
 }
 
+async function updateURL(req,res){
 
-module.exports = {shortenURL, redirectToOriginalURL, getAnalytics}
+    const {shortCode} = req.params
+    const {originalURL} = req.body
+
+    //update url in mongo db
+    const updatedURL = await urlModel.findOneAndUpdate({shortCode},
+        {originalURL},
+        {new: true}
+    )
+
+    if(!updatedURL){
+        return res.status(404).json({
+            success: false,
+            message: "Short URL not found"
+            });
+    }
+
+    //invalidate old cached value
+    await redisClient.del(shortCode)
+
+    return res.status(200).json({
+        success: true,
+        message: "URL updated successfully",
+        data: updatedURL
+    });
+}
+
+async function deleteURL(req, res) {
+    const { shortCode } = req.params;
+
+    // Delete from MongoDB
+    const deletedURL = await urlModel.findOneAndDelete({
+        shortCode
+    });
+
+    if (!deletedURL) {
+        return res.status(404).json({
+            success: false,
+            message: "Short URL not found"
+        });
+    }
+
+    // Delete cached copy
+    await redisClient.del(shortCode);
+
+    return res.status(200).json({
+        success: true,
+        message: "Short URL deleted successfully"
+    });
+}
+
+
+module.exports = {shortenURL, redirectToOriginalURL, getAnalytics, updateURL, deleteURL}
