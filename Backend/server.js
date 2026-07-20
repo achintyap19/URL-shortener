@@ -1,6 +1,7 @@
 const app = require('./src/app')
 const connectDB = require('./src/db/db')
 const redisClient = require('./src/db/redis')
+const logger  = require('./src/utils/logger')
 
 
 async function startServer(){
@@ -11,10 +12,10 @@ async function startServer(){
         
         //connect redis
         await redisClient.connect()
-        console.log('Redis connected successfully')
+        logger.info('Redis connected successfully')
 
         app.listen(process.env.PORT, ()=>{
-            console.log('server is running on port 3000')
+            logger.info(`server is running on port ${process.env.PORT}`)
         })
 
     }catch(error){

@@ -1,6 +1,7 @@
 const urlModel = require('../models/url.model')
 const {nanoid} = require('nanoid')
 const redisClient = require('../db/redis')
+const logger = require('../utils/logger')
 
 async function shortenURL(req,res){
 
@@ -56,7 +57,7 @@ async function redirectToOriginalURL(req,res){
         const cachedUrl = await redisClient.get(shortCode)
 
         if(cachedUrl){
-            console.log('✅ Cache Hit')
+            logger.info({shortCode}, 'cache hit')
 
             //increment clicks in mongo db and redirect
             await urlModel.updateOne(
@@ -69,7 +70,7 @@ async function redirectToOriginalURL(req,res){
 
         
 
-        console.log('❌ Cache Miss')
+        logger.info({shortCode}, 'cache miss')
 
         //if not in redis, query mongoDB
         const url = await urlModel.findOne({shortCode})

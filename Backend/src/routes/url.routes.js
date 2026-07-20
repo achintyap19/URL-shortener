@@ -2,6 +2,7 @@ const express = require('express')
 const UrlController = require('../controllers/url.controller')
 const urlValidator = require('../middlewares/url.middleware')
 const asyncHandler = require('../middlewares/asyncHandler.middleware')
+const {urlShortenerLimiter} = require('../middlewares/rateLimiter.middleware')
 
 
 const router = express.Router()
@@ -11,7 +12,7 @@ const router = express.Router()
  * @description Creates a shortened URL from the provided original URL
  * @access Public
  */
-router.post('/shorten',urlValidator.validateOriginalURL, asyncHandler(UrlController.shortenURL))
+router.post('/shorten',urlShortenerLimiter, urlValidator.validateOriginalURL, asyncHandler(UrlController.shortenURL))
 
 /**
  * @route GET /api/url/analytics/:shortCode

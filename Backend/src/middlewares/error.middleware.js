@@ -1,6 +1,8 @@
+const logger = require('../utils/logger')
+
 function errorHandler(err, req, res, next) {
 
-    console.error(err);
+    logger.error({ err }, 'Unhandled application error');
 
     return res.status(500).json({
         success: false,

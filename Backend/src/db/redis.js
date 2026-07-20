@@ -1,4 +1,5 @@
 const {createClient} = require('redis')
+const logger = require('../utils/logger')
 
 const redisClient = createClient({
     url: 'redis://localhost:6379'
