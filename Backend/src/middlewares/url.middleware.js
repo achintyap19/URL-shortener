@@ -2,7 +2,7 @@
 
 function validateOriginalURL(req,res,next){
     
-    const {originalURL, customAlias} = req.body
+    const {originalURL, customAlias, expiresAt} = req.body
 
     //url not found
     if(!originalURL){
@@ -45,6 +45,28 @@ function validateOriginalURL(req,res,next){
         });
     }
 }
+    //validate expiration date
+    if (expiresAt) {
+
+    const expiryDate = new Date(expiresAt);
+
+    // Check if date is valid
+    if (isNaN(expiryDate.getTime())) {
+        return res.status(400).json({
+            success: false,
+            message: "Invalid expiration date."
+        });
+    }
+
+    // Check if expiration date is in the future
+    if (expiryDate <= new Date()) {
+        return res.status(400).json({
+            success: false,
+            message: "Expiration date must be in the future."
+        });
+    }
+}
+
     next()
 }
 

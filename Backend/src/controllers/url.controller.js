@@ -7,7 +7,7 @@ async function shortenURL(req,res){
 
     
         //url comes from body
-        const {originalURL, customAlias} = req.body
+        const {originalURL, customAlias, expiresAt} = req.body
         
         //check if a URl already exists or not/prevent duplicacy
         const existingURL = await urlModel.findOne({originalURL})
@@ -40,6 +40,7 @@ async function shortenURL(req,res){
         const url = await urlModel.create({
             originalURL,
             shortCode,
+            expiresAt
         })
 
         res.status(201).json({
@@ -81,10 +82,37 @@ async function redirectToOriginalURL(req,res){
             })
         }
 
-        //store in redis for future requests
-        await redisClient.set(shortCode, url.originalURL, {
-            EX: 3600 //1 hour expiration time of the short code in redis
+        //check if the url has expired
+        if(url.expiresAt && new Date() > url.expiresAt){
+            await redisClient.del(shortCode);
+
+            return res.status(410).json({
+                success: false,
+                message: 'This short URL has expired.'
         });
+        }
+
+        //dynamic redis ttl
+        if(url.expiresAt){
+
+            const ttl = Math.floor(
+                (url.expiresAt.getTime() - Date.now())/1000
+            )
+
+            if(ttl>0){
+                await redisClient.set(shortCode, url.originalURL, {
+                    EX: ttl
+                })
+            }
+        }
+        else{
+            //permanent url - cache for 1 hour
+            await redisClient.set(shortCode, url.originalURL, {
+                    EX: 3600
+                });
+        }
+
+        
 
         //increment click count
         await urlModel.updateOne(
@@ -117,6 +145,7 @@ async function getAnalytics(req,res){
                 shortCode: url.shortCode,
                 clicks: url.clicks,
                 createdAt: url.createdAt,
+                expiresAt: url.expiresAt,
                 updatedAt: url.updatedAt,
             }
         })
