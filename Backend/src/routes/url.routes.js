@@ -8,11 +8,20 @@ const {urlShortenerLimiter} = require('../middlewares/rateLimiter.middleware')
 const router = express.Router()
 
 /**
+ * 
  * @route POST /api/url/shorten
  * @description Creates a shortened URL from the provided original URL
  * @access Public
  */
-router.post('/shorten',urlShortenerLimiter, urlValidator.validateOriginalURL, asyncHandler(UrlController.shortenURL))
+const middlewares = [];
+if (process.env.NODE_ENV !== "test") {
+    middlewares.push(urlShortenerLimiter);
+}
+
+middlewares.push(urlValidator.validateOriginalURL);
+middlewares.push(asyncHandler(UrlController.shortenURL));
+
+router.post('/shorten',...middlewares)
 
 /**
  * @route GET /api/url/analytics/:shortCode
